@@ -1,0 +1,11 @@
+version: 2
+updates:
+    target-branch : "main"
+  - package-ecosystem: "npm"
+    directory: "/"
+    
+    schedule:
+      interval: "daily"
+    # Disable version updates for npm dependencies
+    open-pull-requests-limit: 10
+    # Disable rebasing for npm pull requests

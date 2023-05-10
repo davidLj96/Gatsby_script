@@ -1,0 +1,45 @@
+name: Run pipeline
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+  push:
+    branches:
+      - main 
+
+jobs:
+  scan_dependency_usage:
+    if: (github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.merged != true) || (github.event_name == 'push' || (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'))
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python environment
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.10.6 
+
+    - name: Install dependencies
+      run: |
+        pip install -r .github/scripts/requirements.txt
+
+    - name: Update pull request
+      if: github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.merged != true
+      env:
+        TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        REPOSITORY: ${{ github.repository }}
+        PULL_REQUEST: ${{ github.event.number }}
+
+      run: |
+        python3 .github/scripts/update_pull_request.py
+    
+    - name: Create/Update issue
+      if: github.event_name == 'push' || (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main')
+      env:
+        TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+
+      run: |
+        python3 .github/scripts/handle_issue.py
