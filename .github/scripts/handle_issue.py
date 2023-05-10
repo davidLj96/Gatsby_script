@@ -26,17 +26,20 @@ response.raise_for_status()
 alerts = response.json()
 dependencies = set()
 severities = {}
+vulnerabilities = {}
 
 for alert in alerts:
     if alert['state'] == 'open':
         dependency = alert['security_vulnerability']['package']['name']
         dependencies.add(dependency)
         severities[dependency] = alert['security_vulnerability']['severity']
+        vulnerabilities[dependency] = alert['security_advisory']['summary']
+
 
 dependencies = list(dependencies)
 
 issue_title = "Vulnerable Dependencies"
-issue_body = f"{get_usage_info(dependencies, repo_name, commit_sha, severities)}"
+issue_body = f"{get_usage_info(dependencies, repo_name, commit_sha, severities, vulnerabilities)}"
 
 existing_issues = repo.get_issues(state="open", labels=["Dependabot"])
 

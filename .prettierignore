@@ -1,5 +1,4 @@
 *.min.js
-**/node_modules/**
 flow-typed
 deprecated-packages
 
@@ -20,7 +19,6 @@ packages/**/*.js
 !packages/gatsby/cache-dir/**/*.js
 !packages/*/src/**/*.js
 !packages/gatsby-plugin-mdx/**/*.js
-packages/gatsby-plugin-mdx/node_modules/**/*.js
 packages/gatsby/cache-dir/commonjs/**/*.js
 packages/gatsby-source-wordpress/test-site/**
 

@@ -53,11 +53,26 @@ def scan_files(import_pattern, files_with_dependency, node_modules_with_dependen
             # Open javascript and typescript files
             with open(filepath, 'r', encoding='utf-8') as f:
                 import_names = set()
+                import_buffer = ""
+                import_block = False
 
                 for line_number, line in enumerate(f, start=1):
-                    lines = line.strip().split(';')
-                    for sub_line in lines:
-                        import_names = process_import_line(sub_line.split('//')[0], import_names, import_pattern)
+                    line = line.strip()
+
+                    # If it's a multiline import block
+                    if import_block or line.startswith("import {"):
+                        import_block = True
+                        import_buffer += line  # Append line to the buffer
+                        # If it's the end of an import block
+                        if "}" in line:  
+                            import_block = False
+                            import_names = process_import_line(import_buffer, import_names, import_pattern)
+                            import_buffer = ""  # Reset the buffer
+                    else:
+                        # If it's a single-line import
+                        lines = line.split(';')
+                        for sub_line in lines:
+                            import_names = process_import_line(sub_line, import_names, import_pattern)
 
                 if import_names:
                     if not 'node_modules' in filepath:
@@ -68,17 +83,27 @@ def scan_files(import_pattern, files_with_dependency, node_modules_with_dependen
                     f.seek(0)
                 else:
                     continue
+                
+                import_block = False
 
                 for line_number, line in enumerate(f, start=1):
                     if not (line.strip().startswith('//') or line.strip().startswith('/*') or 
                             line.strip().startswith('*')):
                         
                         lines = line.strip().split(';')
+                        
                         for sub_line in lines:
-                            process_usage_line(sub_line.split('//')[0], line_number, import_names, 'node_modules' in filepath, 
-                                               import_pattern, files_with_dependency, node_modules_with_dependency)
+                            if sub_line.strip().startswith("import"):
+                                import_block = True
+            
+                            if 'from' in sub_line:
+                                import_block = False
 
-def get_usage_info(dependencies, repo_name, commit_sha, severities=None):
+                            if not import_block:
+                                process_usage_line(sub_line.split('//')[0], line_number, import_names, 'node_modules' in filepath, 
+                                                import_pattern, files_with_dependency, node_modules_with_dependency)
+
+def get_usage_info(dependencies, repo_name, commit_sha, severities=None, vulnerabilities=None):
     
     description = ''
 
@@ -98,6 +123,8 @@ def get_usage_info(dependencies, repo_name, commit_sha, severities=None):
 
             if severities:
                 description += f'Severity: **{severities[dependency].capitalize()}**\n'
+            if vulnerabilities:
+                description += f'{vulnerabilities[dependency].capitalize()}\n'
             
             description += f'The <code>{dependency}</code> dependency is never used, consider removing it.\n'
             continue
@@ -105,7 +132,9 @@ def get_usage_info(dependencies, repo_name, commit_sha, severities=None):
         description += f'\n### {dependency.capitalize()}\n' 
         
         if severities:
-                description += f'Severity: **{severities[dependency].capitalize()}**\n'
+            description += f'Severity: **{severities[dependency].capitalize()}**\n'
+        if vulnerabilities:
+            description += f'{vulnerabilities[dependency].capitalize()}\n'
 
         description += (f'The <code>{dependency}</code> dependency is used in '
             + f'{str(len(files_with_dependency))} of your file(s) and in {str(len(node_modules_with_dependency))} node module(s).\n')
@@ -126,7 +155,7 @@ def get_usage_info(dependencies, repo_name, commit_sha, severities=None):
                         + f'<br><code>{dependency}</code> is imported but never used, consider removing it.</li>\n')
                     continue
                 else:
-                    description += f'<li>\nIn: <a href="https://github.com/{repo_name}/blob/{commit_sha}/{file}#L{lines[0]}">{file}</a>\n'
+                    description += f'<li>\n{l} times in: <a href="https://github.com/{repo_name}/blob/{commit_sha}/{file}#L{lines[0]}">{file}</a>\n'
 
                 description += '<br>Line(s): '
 
@@ -148,7 +177,7 @@ def get_usage_info(dependencies, repo_name, commit_sha, severities=None):
                         + f'<br><code>{dependency}</code> is imported but never used, consider removing it.</li>\n')
                     continue
                 else:
-                    description += f'<li>\nIn: <a href="https://github.com/{repo_name}/blob/{commit_sha}/{file}#L{lines[0]}">{file}</a>\n'
+                    description += f'<li>\n{l} times in: <a href="https://github.com/{repo_name}/blob/{commit_sha}/{file}#L{lines[0]}">{file}</a>\n'
 
                 description += '<br>Line(s): '
 
@@ -161,4 +190,3 @@ def get_usage_info(dependencies, repo_name, commit_sha, severities=None):
             description += '</ul></details>\n'
     
     return description
-
