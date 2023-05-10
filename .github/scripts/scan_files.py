@@ -42,6 +42,7 @@ and adds the files that use the dependencies
 to the files_with_dependency list.
 '''
 def scan_files(import_pattern, files_with_dependency, node_modules_with_dependency):
+    total_files_Scanned = 0
     for root, _, files in os.walk('.'):
         for file in files:
             if not (file.endswith('js') or file.endswith('jsx') or 
@@ -52,6 +53,7 @@ def scan_files(import_pattern, files_with_dependency, node_modules_with_dependen
 
             # Open javascript and typescript files
             with open(filepath, 'r', encoding='utf-8') as f:
+                total_files_Scanned += 1
                 import_names = set()
                 import_buffer = ""
                 import_block = False
@@ -102,10 +104,12 @@ def scan_files(import_pattern, files_with_dependency, node_modules_with_dependen
                             if not import_block:
                                 process_usage_line(sub_line.split('//')[0], line_number, import_names, 'node_modules' in filepath, 
                                                 import_pattern, files_with_dependency, node_modules_with_dependency)
+    return total_files_Scanned
 
 def get_usage_info(dependencies, repo_name, commit_sha, severities=None, vulnerabilities=None):
     
     description = ''
+    total_files_scanned = 0
 
     # Scan the files in the repository for dependencies in the dependencies list
     for dependency in dependencies:
@@ -113,7 +117,7 @@ def get_usage_info(dependencies, repo_name, commit_sha, severities=None, vulnera
             + r"\s*(?:as\s*[\w]+)?\s*(?:from\s+['\"]|=\s*(?:[\w.]+\()?require\(['\"])" + re.escape(dependency) + r"['\"]")
         files_with_dependency = [] 
         node_modules_with_dependency = []
-        scan_files(import_pattern, files_with_dependency, node_modules_with_dependency)
+        total_files_scanned = scan_files(import_pattern, files_with_dependency, node_modules_with_dependency)
 
         files_with_dependency = sorted(files_with_dependency, key=lambda x: len(x))
         node_modules_with_dependency = sorted(node_modules_with_dependency, key=lambda x: len(x))
@@ -189,4 +193,5 @@ def get_usage_info(dependencies, repo_name, commit_sha, severities=None, vulnera
             
             description += '</ul></details>\n'
     
+    description += f'\nTotal files scanned: {total_files_scanned}'
     return description
