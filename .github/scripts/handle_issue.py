@@ -9,6 +9,18 @@ def get_label(repo, label_name, color):
     except Exception:
         return repo.create_label(label_name, color)
 
+def get_all_alerts(url, headers):
+    all_alerts = []
+    while url:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        all_alerts.extend(response.json())
+        if 'next' in response.links:
+            url = response.links['next']['url']
+        else:
+            url = None
+    return all_alerts
+
 token = os.environ['TOKEN']
 repo_name = os.environ['GITHUB_REPOSITORY']
 gh = Github(token)
@@ -21,23 +33,17 @@ headers = {
 }
 
 url = f"https://api.github.com/repos/{repo_name}/dependabot/alerts"
-response = requests.get(url, headers=headers)
-response.raise_for_status()
-alerts = response.json()
+alerts = get_all_alerts(url, headers)
 dependencies = set()
 severities = {}
 vulnerabilities = {}
 print("length= ", len(alerts))
 for alert in alerts:
     if alert['state'] == 'open':
-        if alert['number'] == 68:
-          print(alert)
-          dependency = alert['security_vulnerability']['package']['name']
-          dependencies.add(dependency)
-          severities[dependency] = alert['security_vulnerability']['severity']
-          vulnerabilities[dependency] = alert['security_advisory']['summary']
-
-
+        dependency = alert['security_vulnerability']['package']['name']
+        dependencies.add(dependency)
+        severities[dependency] = alert['security_vulnerability']['severity']
+        vulnerabilities[dependency] = alert['security_advisory']['summary']
 
 dependencies = list(dependencies)
 
@@ -63,4 +69,3 @@ for issue in existing_issues:
 if not issue_exists and len(dependencies) > 0:
     label = get_label(repo, "Dependabot", "FFA500")
     repo.create_issue(title=issue_title, body=issue_body, labels=[label])
-
