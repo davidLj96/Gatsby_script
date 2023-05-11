@@ -37,6 +37,7 @@ for alert in alerts:
 
 
 dependencies = list(dependencies)
+print(dependencies)
 
 issue_title = "Vulnerable Dependencies"
 issue_body = f"{get_usage_info(dependencies, repo_name, commit_sha, severities, vulnerabilities)}"
