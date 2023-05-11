@@ -30,7 +30,8 @@ vulnerabilities = {}
 
 for alert in alerts:
     if alert['state'] == 'open':
-        print(alert)
+        if alert['number'] == 68:
+            print(alert)
         dependency = alert['security_vulnerability']['package']['name']
         dependencies.add(dependency)
         severities[dependency] = alert['security_vulnerability']['severity']
