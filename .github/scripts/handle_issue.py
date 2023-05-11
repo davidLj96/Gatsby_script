@@ -27,15 +27,16 @@ alerts = response.json()
 dependencies = set()
 severities = {}
 vulnerabilities = {}
-
+print("length= ", len(alerts))
 for alert in alerts:
     if alert['state'] == 'open':
         if alert['number'] == 68:
-            print(alert)
-        dependency = alert['security_vulnerability']['package']['name']
-        dependencies.add(dependency)
-        severities[dependency] = alert['security_vulnerability']['severity']
-        vulnerabilities[dependency] = alert['security_advisory']['summary']
+          print(alert)
+          dependency = alert['security_vulnerability']['package']['name']
+          dependencies.add(dependency)
+          severities[dependency] = alert['security_vulnerability']['severity']
+          vulnerabilities[dependency] = alert['security_advisory']['summary']
+
 
 
 dependencies = list(dependencies)
